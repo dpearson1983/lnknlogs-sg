@@ -154,6 +154,33 @@ void lognormal::init(std::string pkFile) {
 
 void lognormal::sample() {
     for (int i = 0; i < this->N.x; ++i) {
+        int i2 - (2*this->N.x - i) % this->N.x;
         for (int j = 0; j < this->N.y; ++j) {
-            for (int k = 0; k <= this-N.z/2; ++k) {
+            int j2 = (2*this->N.y - j) % this->N.y;
+            for (int k = 0; k <= this->N.z/2; ++k) {
+                pod2<size_t> index1 = getComplexIndex(i, j, k);
                 
+                if ((i == 0 or i == this->N.x/2) and (j == 0 or j == this->N.y/2) and
+                    (k == 0 or k == this->N.z/2)) {
+                    this->F[index1.x] = this->norm(this->gen)*std::sqrt(this->F_i[index1.x]);
+                    this->F[index1.y] = 0.0;
+                } else if (k == 0 or k == this->N.z/2) {
+                    pod2<size_t> index2 = getComplexIndex(i2, j2, k);
+                    this->F[index1.x] = this->norm(this->gen)*std::sqrt(this->F_i[index1.x]/2);
+                    this->F[index1.y] = this->norm(this->gen)*std::sqrt(this->F_i[index1.x]/2);
+                    
+                    this->F[index2.x] =  this->F[index1.x];
+                    this->F[index2.y] = -this->F[index1.y];
+                } else {
+                    this->F[index1.x] = this->norm(this->gen)*std::sqrt(this->F_i[index1.x]/2);
+                    this->F[index1.y] = this->norm(this->gen)*std::sqrt(this->F_i[index1.x]/2);
+                }
+            }
+        }
+    }
+    
+    fftw_execute(dk2dr);
+}
+
+std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, double nbar, pod3<double> r_min) {
+    
