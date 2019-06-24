@@ -19,6 +19,8 @@ class lognormal : public grid3D{
     std::normal_distribution<double> norm;
     std::unifrom_real_distribution<double> U;
     
+    size_t getRealIndex(int i, int j, int k);
+    
     pod2<size_t> getComplexIndex(int i, int j, int k);
     
     void fillGridWithPower(gsl_spline *Pk, gsl_interp_accel *acc);
@@ -28,6 +30,8 @@ class lognormal : public grid3D{
     void getLog();
     
     void getdk_ln();
+    
+    void updateStats(double &mean, double &var, long &count)
     
     public:
         
@@ -39,7 +43,7 @@ class lognormal : public grid3D{
         
         void sample();
         
-        std::vector<galaxy> getGalaxies(cosmology &cosmo, double nbar, pod3<double> r_min);
+        std::vector<galaxy> getGalaxies(double nbar, pod3<double> r_min);
         
         std::vector<galaxy> getGalaxies(cosmology &cosmo, gsl_spline *NofZ, gsl_interp_accel *acc,
                                         std::vector<int> &map, int nside, pod3<double> r_min,

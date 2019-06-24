@@ -78,6 +78,14 @@ void lognormal::getdk_ln(fftw_complex *dk) {
     }
 }
 
+void lognormal::updateStats(double val, double &mean, double &var, long &count) {
+    count += 1L;
+    double delta = val - mean;
+    mean += delta/count;
+    double delta2 = val - mean;
+    double var += delta*delta2;
+}
+
 lognormal::lognormal(pod3<int> N, pod3<double> L, std::string pkFile, double b, double f) : 
 gen((std::random_device())()), norm(0.0, 1.0), U(0.0, 1.0) {
     this->b = b;
@@ -182,5 +190,81 @@ void lognormal::sample() {
     fftw_execute(dk2dr);
 }
 
-std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, double nbar, pod3<double> r_min) {
+std::vector<galaxy> lognormal::getGalaxies(double nbar, pod3<double> r_min) {
+    std::vector<galaxy> gals;
+    double n = nbar*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
+    long count = 0L;
+    double mean = 0.0, var = 0.0;
+    for (int i = 0; i < this->N.x; ++i) {
+        for (int j = 0; j < this->N.y; ++j) {
+            for (int k = 0; k < this->N.z; ++k) {
+                size_t index = getRealIndex(i, j, k);
+                
+                lognormal::updateStats(this->F[index], mean, var, count);
+            }
+        }
+    }
+    var /= (count - 1L);
     
+    for (int i = 0; i < this->N.x; ++i) {
+        double r_x = i*this->Delta_r.x + r_min.x;
+        for (int j = 0; j < this->N.y; ++j) {
+            double r_y = j*this->Delta_r.y + r_min.y;
+            for (int k = 0; k < this->N.z; ++k) {
+                double r_z = k*this->Delta_r.z + r_min.z;
+                size_t index = getRealIndex(i, j, k);
+                this->F[index] -= mean;
+                
+                double density = n*exp(this->F[index] - var/2.0);
+                std::poisson_distribution<int> p_dist(density);
+                int num_gals = p_dist(this->gen);
+                
+                
+                for (int gal = 0; gal < num_gals; ++gal) {
+                    galaxy gal(r_x + this->U(this->gen)*this->Delta_r.x, 
+                               r_y + this->U(this->gen)*this->Delta_r.y,
+                               r_z + this->U(this->gen)*this->Delta_r.z,
+                               nbar, 1.0, this->b);
+                    gals.push_back(gal);
+                }
+            }
+        }
+    }
+    
+    return gals;
+}
+
+std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, gsl_interp_accel *acc,
+                                           std::vector<int> &map, int nside, pod3<double> r_min,
+                                           double z_min, double z_max) {
+    std::vector<galaxy> gals;
+    long count = 0L;
+    double mean = 0.0, var = 0.0;
+    for (int i = 0; i < this->N.x; ++i) {
+        for (int j = 0; j < this->N.y; ++j) {
+            for (int k = 0; k < this->N.z; ++k) {
+                size_t index = getRealIndex(i, j, k);
+                
+                lognormal::updateStats(this->F[index], mean, var, count);
+            }
+        }
+    }
+    var /= (count - 1L);
+    
+    for (int i = 0; i < this->N.x; ++i) {
+        double r_x = i*this->Delta_r.x + r_min.x;
+        for (int j = 0; j < this->N.y; ++j) {
+            double r_y = j*this->Delta_r.y + r_min.y;
+            for (int k = 0; k < this->N.z; ++k) {
+                double r_z = k*this->Delta_r.z + r_min.z;
+                size_t index = getRealIndex(i, j, k);
+                this->F[index] -= mean;
+                
+                double r = std::sqrt(r_x*r_x + r_y*r_y + r_z*r_z);
+                double z = get_redshift_from_comoving_distance(r);
+                double n = gsl_spline_eval(NofZ, z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
+                double dec = std::asin(r_z/r);
+                
+            }
+        }
+    }
