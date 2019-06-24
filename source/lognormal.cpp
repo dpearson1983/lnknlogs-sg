@@ -64,7 +64,22 @@ void lognormal::getLog() {
         this->F_i[i] = std::log(1.0 + F_i[i]);
 }
 
-lognormal::lognormal(pod3<int> N, pod3<double> L, std::string pkFile, double b, double f) {
+void lognormal::getdk_ln(fftw_complex *dk) {
+    int N_tot = this->N.x*this->N.y*(this->N.z/2 + 1);
+#pragma omp parallel for
+    for (int i = 0; i < N_tot; ++i) {
+        if (dk[i][0] > 0) {
+            dk[i][0] /= N_tot;
+            dk[i][1] = 0.0;
+        } else {
+            dk[i][0] = 0.0;
+            dk[i][1] = 0.0;
+        }
+    }
+}
+
+lognormal::lognormal(pod3<int> N, pod3<double> L, std::string pkFile, double b, double f) : 
+gen((std::random_device())()), norm(0.0, 1.0), U(0.0, 1.0) {
     this->b = b;
     this->f = f;
     this->N = N;
@@ -124,7 +139,7 @@ void lognormal::init(std::string pkFile) {
         fftw_execute(dk2dr_i);
         lognormal::getLog();
         fftw_execute(dr2dk_i);
-        lognormal::getdk_ln();
+        lognormal::getdk_ln((fftw_complex *)this->F_i.data());
         
         gsl_spline_free(Pk);
         gsl_interp_accel_free(acc);
@@ -136,3 +151,9 @@ void lognormal::init(std::string pkFile) {
         throw std::runtime_error(errMsg.str());
     }
 }
+
+void lognormal::sample() {
+    for (int i = 0; i < this->N.x; ++i) {
+        for (int j = 0; j < this->N.y; ++j) {
+            for (int k = 0; k <= this-N.z/2; ++k) {
+                
