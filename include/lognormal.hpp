@@ -33,6 +33,8 @@ class lognormal : public grid3D{
     
     void updateStats(double &mean, double &var, long &count)
     
+    pod3<double> cartToEqua(double x, double y, double z, cosmology &cosmo);
+    
     public:
         
         lognormal(pod3<int> N, pod3<double> L, std::string pkFile, double b = 1.0, double f = 0.0);
@@ -45,8 +47,13 @@ class lognormal : public grid3D{
         
         std::vector<galaxy> getGalaxies(double nbar, pod3<double> r_min);
         
+        std::vector<galaxy> getRandoms(double nbar, pod3<double> r_min, double timesRan);
+        
         std::vector<galaxy> getGalaxies(cosmology &cosmo, gsl_spline *NofZ, gsl_interp_accel *acc,
                                         std::vector<int> &map, int nside, pod3<double> r_min,
                                         double z_min, double z_max);
         
+        std::vector<galaxy> getRandoms(cosmology &cosmo, gsl_spline *NofZ, gsl_interp_accel *acc,
+                                       std::vector<int> &map, int nside, pod3<double> r_min,
+                                       double z_min, double z_max);
 };

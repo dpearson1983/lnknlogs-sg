@@ -86,6 +86,19 @@ void lognormal::updateStats(double val, double &mean, double &var, long &count) 
     double var += delta*delta2;
 }
 
+pod3<double> lognormal::cartToEqua(double x, double y, double z, cosmology &cosmo) {
+    pod3<double> equa;
+    double D = std::sqrt(x*x + y*y + z*z);
+    equa.z = cosmo.get_redshift_from_comoving_distance(D);
+    if (y >= 0) {
+        equa.x = (180.0/M_PI)*std::acos(x/std::sqrt(x*x + y*y));
+    } else {
+        equa.x = 360.0 - (180.0/M_PI)*std::acos(x/std::sqrt(x*x + y*y));
+    }
+    equa.y = (180.0/M_PI)*std::asin(z/D);
+    return equa;
+}
+
 lognormal::lognormal(pod3<int> N, pod3<double> L, std::string pkFile, double b, double f) : 
 gen((std::random_device())()), norm(0.0, 1.0), U(0.0, 1.0) {
     this->b = b;
@@ -198,7 +211,7 @@ std::vector<galaxy> lognormal::getGalaxies(double nbar, pod3<double> r_min) {
     for (int i = 0; i < this->N.x; ++i) {
         for (int j = 0; j < this->N.y; ++j) {
             for (int k = 0; k < this->N.z; ++k) {
-                size_t index = getRealIndex(i, j, k);
+                size_t index = lognormal::getRealIndex(i, j, k);
                 
                 lognormal::updateStats(this->F[index], mean, var, count);
             }
@@ -212,7 +225,7 @@ std::vector<galaxy> lognormal::getGalaxies(double nbar, pod3<double> r_min) {
             double r_y = j*this->Delta_r.y + r_min.y;
             for (int k = 0; k < this->N.z; ++k) {
                 double r_z = k*this->Delta_r.z + r_min.z;
-                size_t index = getRealIndex(i, j, k);
+                size_t index = lognormal::getRealIndex(i, j, k);
                 this->F[index] -= mean;
                 
                 double density = n*exp(this->F[index] - var/2.0);
@@ -221,17 +234,32 @@ std::vector<galaxy> lognormal::getGalaxies(double nbar, pod3<double> r_min) {
                 
                 
                 for (int gal = 0; gal < num_gals; ++gal) {
-                    galaxy gal(r_x + this->U(this->gen)*this->Delta_r.x, 
-                               r_y + this->U(this->gen)*this->Delta_r.y,
-                               r_z + this->U(this->gen)*this->Delta_r.z,
-                               nbar, 1.0, this->b);
-                    gals.push_back(gal);
+                    galaxy gal_i(r_x + this->U(this->gen)*this->Delta_r.x, 
+                                 r_y + this->U(this->gen)*this->Delta_r.y,
+                                 r_z + this->U(this->gen)*this->Delta_r.z,
+                                 nbar, 1.0, this->b);
+                    gals.push_back(gal_i);
                 }
             }
         }
     }
     
     return gals;
+}
+
+std::vector<galaxy> lognormal::getRandoms(double nbar, pod3<double> r_min, double timesRan) {
+    size_t N_ran = nbar*this->L.x*this->L.y*this->L.z*timesRan;
+    std::vector<galaxy> rans;
+    
+    for (size_t i = 0; i < N_ran; ++i) {
+        double x = this->U(this->gen)*this->L.x + r_min.x;
+        double y = this->U(this->gen)*this->L.y + r_min.y;
+        double z = this->U(this->gen)*this->L.z + r_min.z;
+        galaxy ran(x, y, z, nbar, 1.0, this->b);
+        rans.push_back(ran);
+    }
+    
+    return rans;
 }
 
 std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, gsl_interp_accel *acc,
@@ -243,7 +271,7 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, g
     for (int i = 0; i < this->N.x; ++i) {
         for (int j = 0; j < this->N.y; ++j) {
             for (int k = 0; k < this->N.z; ++k) {
-                size_t index = getRealIndex(i, j, k);
+                size_t index = lognormal::getRealIndex(i, j, k);
                 
                 lognormal::updateStats(this->F[index], mean, var, count);
             }
@@ -252,19 +280,75 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, g
     var /= (count - 1L);
     
     for (int i = 0; i < this->N.x; ++i) {
-        double r_x = i*this->Delta_r.x + r_min.x;
+        double r_x = (i + 0.5)*this->Delta_r.x + r_min.x;
         for (int j = 0; j < this->N.y; ++j) {
-            double r_y = j*this->Delta_r.y + r_min.y;
+            double r_y = (j + 0.5)*this->Delta_r.y + r_min.y;
             for (int k = 0; k < this->N.z; ++k) {
-                double r_z = k*this->Delta_r.z + r_min.z;
-                size_t index = getRealIndex(i, j, k);
+                double r_z = (k + 0.5)*this->Delta_r.z + r_min.z;
+                size_t index = lognormal::getRealIndex(i, j, k);
                 this->F[index] -= mean;
                 
-                double r = std::sqrt(r_x*r_x + r_y*r_y + r_z*r_z);
-                double z = get_redshift_from_comoving_distance(r);
-                double n = gsl_spline_eval(NofZ, z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
-                double dec = std::asin(r_z/r);
-                
+                pod3<double> equa = lognormal::cartToEqua(r_x, r_y, r_z, cosmo);
+                double theta = std::abs(equa.y - 90.0)*(M_PI/180.0);
+                double phi = equa.x*(M_PI/180.0);
+                long pix = ang2pix_nest(nside, theta, phi, &pix);
+                if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
+                    double n = gsl_spline_eval(NofZ, z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
+                    double density = n*exp(this->F[index] - var/2.0);
+                    std::poisson_distribution<int> p_dist(density);
+                    int num_gals = p_dist(this->gen);
+                    
+                    for (int gal = 0; gal < num_gals; ++gal) {
+                        double x = r_x + (this->U(this->gen) - 0.5)*this->Delta_r.x;
+                        double y = r_y + (this->U(this->gen) - 0.5)*this->Delta_r.y;
+                        double z = r_z + (this->U(this->gen) - 0.5)*this->Delta_r.z;
+                        pod3<double> eq = lognormal::cartToEqua(x, y, z, cosmo);
+                        double nbar = gsl_spline_eval(NofZ, eq.z, acc);
+                        double w_fkp = 1.0/(1.0 + nbar*10000.0);
+                        galaxy gal_i(eq.x, eq.y, eq.z, cosmo, nbar, w_fkp, this->b);
+                        gals.push_back(gal_i);
+                    }
+                }
             }
         }
     }
+    
+    return gals;
+}
+
+std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, gsl_spline *NofZ, gsl_interp_accel *acc,
+                                          std::vector<int> &map, int nside, pod3<double> r_min,
+                                          double z_min, double z_max) {
+    std::vector<galaxy> rans;
+    for (int i = 0; i < this->N.x; ++i) {
+        double r_x = (i + 0.5)*this->Delta_r.x + r_min.x;
+        for (int j = 0; j < this->N.y; ++j) {
+            double r_y = (j + 0.5)*this->Delta_r.y + r_min.y;
+            for (int k = 0; k < this->N.z; ++k) {
+                double r_z = (k + 0.5)*this->Delta_r.z + r_min.z;
+                size_t index = lognormal::getRealIndex(i, j, k);
+                
+                pod3<double> equa = lognormal::cartToEqua(r_x, r_y, r_z, cosmo);
+                double theta = std::abs(equa.y - 90.0)*(M_PI/180.0);
+                double phi = equa.x*(M_PI/180.0);
+                long pix = ang2pix_nest(nside, theta, phi, &pix);
+                if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
+                    double n = gsl_spline_eval(NofZ, z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
+                    
+                    for (int ran = 0; ran < n; ++ran) {
+                        double x = r_x + (this->U(this->gen) - 0.5)*this->Delta_r.x;
+                        double y = r_y + (this->U(this->gen) - 0.5)*this->Delta_r.y;
+                        double z = r_z + (this->U(this->gen) - 0.5)*this->Delta_r.z;
+                        pod3<double> eq = lognormal::cartToEqua(x, y, z, cosmo);
+                        double nbar = gsl_spline_eval(NofZ, eq.z, acc);
+                        double w_fkp = 1.0/(1.0 + nbar*10000.0);
+                        galaxy ran_i(eq.x, eq.y, eq.z, cosmo, nbar, w_fkp, this->b);
+                        rans.push_back(ran_i);
+                    }
+                }
+            }
+        }
+    }
+    
+    return rans;
+}
