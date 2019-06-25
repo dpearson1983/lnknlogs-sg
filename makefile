@@ -1,6 +1,6 @@
 CXX = g++
 CXXOPTS = -march=native -mtune=native -O3
-LDFLAGS = -lgsl -lgslcblas -lm -lfftw3 -lfftw3_omp -fopenmp
+LDFLAGS = -lgsl -lgslcblas -lm -lfftw3 -lfftw3_omp -lchealpix -fopenmp
 SRC_DIR := source
 OBJ_DIR := obj
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)

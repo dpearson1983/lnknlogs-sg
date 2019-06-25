@@ -1,6 +1,7 @@
-#include "../include/cosmology.h"
+#include "../include/cosmology.hpp"
 #include <vector>
 #include <cmath>
+#include <string>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_spline.h>
 
@@ -42,7 +43,7 @@ cosmology::cosmology() {
     cosmology::Om_L = 0.6911;
     cosmology::Om_b = 0.0485975615443;
     cosmology::Om_c = 0.258896426523;
-    cosmology::tau = 0.066
+    cosmology::tau = 0.066;
     cosmology::T_CMB = 2.718;
     cosmology::h = 0.6774;
     cosmology::acc = gsl_interp_accel_alloc();
@@ -83,7 +84,7 @@ cosmology::cosmology(double H_0, double OmegaM, double OmegaL, double Omegab, do
 cosmology::~cosmology() {
     gsl_spline_free(cosmology::r2z);
     gsl_interp_accel_free(cosmology::acc);
-    gsl_integration_workspace_free(cosmology::w)
+    gsl_integration_workspace_free(cosmology::w);
 }
 
 void cosmology::set() {
@@ -105,7 +106,7 @@ void cosmology::set(T arg, Args... args) {
     } else if (param == "Omega_L") {
         cosmology::Om_L = val;
     } else if (param == "Omega_b") {
-        comsology::Om_b = val;
+        cosmology::Om_b = val;
     } else if (param == "Omega_c") {
         cosmology::Om_c = val;
     } else if (param == "tau") {

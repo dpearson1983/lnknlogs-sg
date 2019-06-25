@@ -9,8 +9,10 @@ class fileIO{
     int N, digits;
     std::string base, ext;
     
+    std::string filename();
+    
     public:
-        fileIO(std::string base, std::string ext, int digits);
+        fileIO(std::string base, std::string ext, int digits, int startNum = 1);
         
         void write(std::vector<galaxy> &gals);
         
