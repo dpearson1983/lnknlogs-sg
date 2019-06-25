@@ -17,7 +17,7 @@ class lognormal : public grid3D{
     std::vector<double> F_i;
     std::mt19937_64 gen;
     std::normal_distribution<double> norm;
-    std::unifrom_real_distribution<double> U;
+    std::uniform_real_distribution<double> U;
     
     size_t getRealIndex(int i, int j, int k);
     
@@ -29,9 +29,9 @@ class lognormal : public grid3D{
     
     void getLog();
     
-    void getdk_ln();
+    void getdk_ln(fftw_complex *dk);
     
-    void updateStats(double &mean, double &var, long &count)
+    void updateStats(double val, double &mean, double &var, long &count);
     
     pod3<double> cartToEqua(double x, double y, double z, cosmology &cosmo);
     
@@ -57,3 +57,5 @@ class lognormal : public grid3D{
                                        std::vector<int> &map, int nside, pod3<double> r_min,
                                        double z_min, double z_max);
 };
+
+#endif

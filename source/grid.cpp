@@ -1,5 +1,5 @@
 #include <vector>
-#include "../include/grid.hpp
+#include "../include/grid.hpp"
 
 size_t grid3D::getIndex(int i, int j, int k) {
     return size_t(k + this->N.z*(j + this->N.y*i));

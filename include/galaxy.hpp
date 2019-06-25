@@ -19,3 +19,5 @@ class galaxy{
         
         void init(double x, double y, double z, double nbar = 1.0, double w = 1.0, double bias = 1.0);
 };
+
+#endif

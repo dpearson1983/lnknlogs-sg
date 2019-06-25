@@ -1,13 +1,16 @@
 // Standard library includes
+#include <fstream>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <cmath>
+#include <random>
 
 // 3rd Party library includes
 #include <omp.h>
 #include <fftw3.h>
 #include <gsl/gsl_spline.h>
+#include <chealpix.h>
 
 // Custom library includes
 #include "../include/tpods.hpp"
@@ -15,7 +18,7 @@
 #include "../include/galaxy.hpp"
 #include "../include/lognormal.hpp"
 
-pod2<size_t> getComplexIndex(int i, int j, int k) {
+pod2<size_t> lognormal::getComplexIndex(int i, int j, int k) {
     pod2<size_t> index;
     index.x = (2*k    ) + 2*(this->N.z/2 + 1)*(j + this->N.y*i);
     index.y = (2*k + 1) + 2*(this->N.z/2 + 1)*(j + this->N.y*i);
@@ -32,7 +35,7 @@ void lognormal::fillGridWithPower(gsl_spline *Pk, gsl_interp_accel *acc) {
                 double kzsq = this->kz[k]*this->kz[k];
                 double k_mag = std::sqrt(kxsq + kysq + kzsq);
                 
-                pod2<size_t> index = lognormal(getComplexIndex(i, j, k));
+                pod2<size_t> index = lognormal::getComplexIndex(i, j, k);
                 
                 if (k_mag > 0) {
                     double mu = kx[i]/k_mag;
@@ -83,7 +86,7 @@ void lognormal::updateStats(double val, double &mean, double &var, long &count) 
     double delta = val - mean;
     mean += delta/count;
     double delta2 = val - mean;
-    double var += delta*delta2;
+    var += delta*delta2;
 }
 
 pod3<double> lognormal::cartToEqua(double x, double y, double z, cosmology &cosmo) {
@@ -100,11 +103,9 @@ pod3<double> lognormal::cartToEqua(double x, double y, double z, cosmology &cosm
 }
 
 lognormal::lognormal(pod3<int> N, pod3<double> L, std::string pkFile, double b, double f) : 
-gen((std::random_device())()), norm(0.0, 1.0), U(0.0, 1.0) {
+grid3D::grid3D(N, L), gen((std::random_device())()), norm(0.0, 1.0), U(0.0, 1.0) {
     this->b = b;
     this->f = f;
-    this->N = N;
-    this->L = L;
     this->F.resize(N.x*N.y*2*(N.z/2 + 1));
     this->F_i.resize(N.x*N.y*2*(N.z/2 + 1));
     
@@ -119,12 +120,12 @@ gen((std::random_device())()), norm(0.0, 1.0), U(0.0, 1.0) {
                                        FFTW_MEASURE);
     this->dk2dr = fftw_plan_dft_c2r_3d(N.x, N.y, N.z, (fftw_complex *)this->F.data(), this->F.data(),
                                        FFTW_MEASURE);
-    fftw_export_wisfrom_from_filename("fftwWisdom.dat"):
+    fftw_export_wisdom_to_filename("fftwWisdom.dat");
     
     lognormal::init(pkFile);
 }
 
-lognormal::~lognormal{
+lognormal::~lognormal(){
     fftw_destroy_plan(this->dr2dk);
     fftw_destroy_plan(this->dk2dr);
     fftw_cleanup_threads();
@@ -175,7 +176,7 @@ void lognormal::init(std::string pkFile) {
 
 void lognormal::sample() {
     for (int i = 0; i < this->N.x; ++i) {
-        int i2 - (2*this->N.x - i) % this->N.x;
+        int i2 = (2*this->N.x - i) % this->N.x;
         for (int j = 0; j < this->N.y; ++j) {
             int j2 = (2*this->N.y - j) % this->N.y;
             for (int k = 0; k <= this->N.z/2; ++k) {
@@ -291,9 +292,10 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, g
                 pod3<double> equa = lognormal::cartToEqua(r_x, r_y, r_z, cosmo);
                 double theta = std::abs(equa.y - 90.0)*(M_PI/180.0);
                 double phi = equa.x*(M_PI/180.0);
-                long pix = ang2pix_nest(nside, theta, phi, &pix);
+                long pix;
+                ang2pix_nest(nside, theta, phi, &pix);
                 if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
-                    double n = gsl_spline_eval(NofZ, z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
+                    double n = gsl_spline_eval(NofZ, equa.z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
                     double density = n*exp(this->F[index] - var/2.0);
                     std::poisson_distribution<int> p_dist(density);
                     int num_gals = p_dist(this->gen);
@@ -331,9 +333,10 @@ std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, gsl_spline *NofZ, gs
                 pod3<double> equa = lognormal::cartToEqua(r_x, r_y, r_z, cosmo);
                 double theta = std::abs(equa.y - 90.0)*(M_PI/180.0);
                 double phi = equa.x*(M_PI/180.0);
-                long pix = ang2pix_nest(nside, theta, phi, &pix);
+                long pix;
+                ang2pix_nest(nside, theta, phi, &pix);
                 if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
-                    double n = gsl_spline_eval(NofZ, z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
+                    double n = gsl_spline_eval(NofZ, equa.z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
                     
                     for (int ran = 0; ran < n; ++ran) {
                         double x = r_x + (this->U(this->gen) - 0.5)*this->Delta_r.x;
