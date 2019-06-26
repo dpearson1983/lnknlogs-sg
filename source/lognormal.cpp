@@ -18,6 +18,10 @@
 #include "../include/galaxy.hpp"
 #include "../include/lognormal.hpp"
 
+size_t lognormal::getRealIndex(int i, int j, int k) {
+    return k + 2*(this->N.z/2 + 1)*(j + this->N.y*i);
+}
+
 pod2<size_t> lognormal::getComplexIndex(int i, int j, int k) {
     pod2<size_t> index;
     index.x = (2*k    ) + 2*(this->N.z/2 + 1)*(j + this->N.y*i);

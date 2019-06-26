@@ -11,3 +11,6 @@ lnknlogs_sg: $(OBJ_FILES)
 	
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXOPTS) -c $< -o $@
+
+clean:
+	rm obj/*.o
