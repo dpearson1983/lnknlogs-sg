@@ -8,6 +8,8 @@ OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
 
 lnknlogs_sg: $(OBJ_FILES)
 	$(CXX) $(LDFLAGS) $^ -o $@
+	mkdir -p $(HOME)/bin
+	cp $@ $(HOME)/bin/$@
 	
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXOPTS) -c $< -o $@

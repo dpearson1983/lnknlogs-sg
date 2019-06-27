@@ -66,15 +66,6 @@ std::vector<double> lognormal::fftFrequencies(int n, double l) {
 }
 
 void lognormal::getLog() {
-    // TODO: Test if this is needed
-    for (int i = 0; i < this->N.x; ++i) {
-        for (int j = 0; j < this->N.y; ++j) {
-            int index1 = this->N.z + 2*(N.z/2 + 1)*(j + N.y*i);
-            int index2 = (this->N.z + 1) + 2*(N.z/2 + 1)*(j + N.y*i);
-            this->F_i[index1] = 0.0;
-            this->F_i[index2] = 0.0;
-        }
-    }
 #pragma omp parallel for
     for (int i = 0; i < this->F_i.size(); ++i)
         this->F_i[i] = std::log(1.0 + F_i[i]);
