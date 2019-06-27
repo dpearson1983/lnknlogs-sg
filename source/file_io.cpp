@@ -33,6 +33,17 @@ void fileIO::write(std::vector<galaxy> &gals) {
     fout.close();
 }
 
+void fileIO::write(std::vector<galaxy> &gals, std::string file) {
+    std::ofstream fout(file);
+    fout.precision(std::numeric_limits<double>::digits10);
+    for (size_t i = 0; i < gals.size(); ++i) {
+        fout << gals[i].ra << " " << gals[i].dec << " " << gals[i].red << " " << gals[i].x << " ";
+        fout << gals[i].y << " " << gals[i].z << " " << gals[i].nbar << " " << gals[i].w << " ";
+        fout << gals[i].bias << "\n";
+    }
+    fout.close();
+}
+
 std::vector<galaxy> fileIO::read() {
     std::vector<galaxy> gals;
     std::string file = fileIO::filename();

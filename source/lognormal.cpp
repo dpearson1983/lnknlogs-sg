@@ -1,4 +1,5 @@
 // Standard library includes
+#include <iostream>
 #include <fstream>
 #include <vector>
 #include <string>
@@ -108,6 +109,9 @@ pod3<double> lognormal::cartToEqua(double x, double y, double z, cosmology &cosm
 
 lognormal::lognormal(pod3<int> N, pod3<double> L, std::string pkFile, double b, double f) : 
 grid3D::grid3D(N, L), gen((std::random_device())()), norm(0.0, 1.0), U(0.0, 1.0) {
+    this->N = N;
+    this->L = L;
+    this->Delta_r = {L.x/N.x, L.y/N.y, L.z/N.z};
     this->b = b;
     this->f = f;
     this->F.resize(N.x*N.y*2*(N.z/2 + 1));
@@ -294,25 +298,27 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, g
                 this->F[index] -= mean;
                 
                 pod3<double> equa = lognormal::cartToEqua(r_x, r_y, r_z, cosmo);
-                double theta = std::abs(equa.y - 90.0)*(M_PI/180.0);
+                double theta = (90.0 - equa.y)*(M_PI/180.0);
                 double phi = equa.x*(M_PI/180.0);
                 long pix;
                 ang2pix_nest(nside, theta, phi, &pix);
-                if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
-                    double n = gsl_spline_eval(NofZ, equa.z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
-                    double density = n*exp(this->F[index] - var/2.0);
-                    std::poisson_distribution<int> p_dist(density);
-                    int num_gals = p_dist(this->gen);
-                    
-                    for (int gal = 0; gal < num_gals; ++gal) {
-                        double x = r_x + (this->U(this->gen) - 0.5)*this->Delta_r.x;
-                        double y = r_y + (this->U(this->gen) - 0.5)*this->Delta_r.y;
-                        double z = r_z + (this->U(this->gen) - 0.5)*this->Delta_r.z;
-                        pod3<double> eq = lognormal::cartToEqua(x, y, z, cosmo);
-                        double nbar = gsl_spline_eval(NofZ, eq.z, acc);
-                        double w_fkp = 1.0/(1.0 + nbar*10000.0);
-                        galaxy gal_i(eq.x, eq.y, eq.z, cosmo, nbar, w_fkp, this->b);
-                        gals.push_back(gal_i);
+                if (pix < map.size()) {
+                    if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
+                        double n = gsl_spline_eval(NofZ, equa.z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
+                        double density = n*exp(this->F[index] - var/2.0);
+                        std::poisson_distribution<int> p_dist(density);
+                        int num_gals = p_dist(this->gen);
+                        
+                        for (int gal = 0; gal < num_gals; ++gal) {
+                            double x = r_x + (this->U(this->gen) - 0.5)*this->Delta_r.x;
+                            double y = r_y + (this->U(this->gen) - 0.5)*this->Delta_r.y;
+                            double z = r_z + (this->U(this->gen) - 0.5)*this->Delta_r.z;
+                            pod3<double> eq = lognormal::cartToEqua(x, y, z, cosmo);
+                            double nbar = gsl_spline_eval(NofZ, eq.z, acc);
+                            double w_fkp = 1.0/(1.0 + nbar*10000.0);
+                            galaxy gal_i(eq.x, eq.y, eq.z, cosmo, nbar, w_fkp, this->b);
+                            gals.push_back(gal_i);
+                        }
                     }
                 }
             }
@@ -324,8 +330,10 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, g
 
 std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, gsl_spline *NofZ, gsl_interp_accel *acc,
                                           std::vector<int> &map, int nside, pod3<double> r_min,
-                                          double z_min, double z_max) {
+                                          double z_min, double z_max, double timesRan) {
     std::vector<galaxy> rans;
+    long cellsInMap = 0;
+    int count = 0;
     for (int i = 0; i < this->N.x; ++i) {
         double r_x = (i + 0.5)*this->Delta_r.x + r_min.x;
         for (int j = 0; j < this->N.y; ++j) {
@@ -335,27 +343,33 @@ std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, gsl_spline *NofZ, gs
                 size_t index = lognormal::getRealIndex(i, j, k);
                 
                 pod3<double> equa = lognormal::cartToEqua(r_x, r_y, r_z, cosmo);
-                double theta = std::abs(equa.y - 90.0)*(M_PI/180.0);
+                double theta = (90.0 - equa.y)*(M_PI/180.0);
                 double phi = equa.x*(M_PI/180.0);
                 long pix;
                 ang2pix_nest(nside, theta, phi, &pix);
-                if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
-                    double n = gsl_spline_eval(NofZ, equa.z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
-                    
-                    for (int ran = 0; ran < n; ++ran) {
-                        double x = r_x + (this->U(this->gen) - 0.5)*this->Delta_r.x;
-                        double y = r_y + (this->U(this->gen) - 0.5)*this->Delta_r.y;
-                        double z = r_z + (this->U(this->gen) - 0.5)*this->Delta_r.z;
-                        pod3<double> eq = lognormal::cartToEqua(x, y, z, cosmo);
-                        double nbar = gsl_spline_eval(NofZ, eq.z, acc);
-                        double w_fkp = 1.0/(1.0 + nbar*10000.0);
-                        galaxy ran_i(eq.x, eq.y, eq.z, cosmo, nbar, w_fkp, this->b);
-                        rans.push_back(ran_i);
+
+                if (pix < map.size()) {
+                    if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
+                        cellsInMap++;
+                        double n = gsl_spline_eval(NofZ, equa.z, acc);
+                        n *= this->Delta_r.x*this->Delta_r.y*this->Delta_r.z*timesRan;
+                        
+                        for (int ran = 0; ran < n; ++ran) {
+                            double x = r_x + (this->U(this->gen) - 0.5)*this->Delta_r.x;
+                            double y = r_y + (this->U(this->gen) - 0.5)*this->Delta_r.y;
+                            double z = r_z + (this->U(this->gen) - 0.5)*this->Delta_r.z;
+                            pod3<double> eq = lognormal::cartToEqua(x, y, z, cosmo);
+                            double nbar = gsl_spline_eval(NofZ, eq.z, acc);
+                            double w_fkp = 1.0/(1.0 + nbar*10000.0);
+                            galaxy ran_i(eq.x, eq.y, eq.z, cosmo, nbar, w_fkp, this->b);
+                            rans.push_back(ran_i);
+                        }
                     }
                 }
             }
         }
     }
+    std::cout << "Total number of cells in the map: " << cellsInMap << std::endl;
     
     return rans;
 }

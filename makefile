@@ -16,3 +16,4 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 clean:
 	rm obj/*.o
+	rm $(HOME)/bin/lnknlogs_sg

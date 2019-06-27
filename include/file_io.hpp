@@ -16,6 +16,8 @@ class fileIO{
         
         void write(std::vector<galaxy> &gals);
         
+        void write(std::vector<galaxy> &gals, std::string file);
+        
         std::vector<galaxy> read();
         
 };

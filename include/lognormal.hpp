@@ -55,7 +55,7 @@ class lognormal : public grid3D{
         
         std::vector<galaxy> getRandoms(cosmology &cosmo, gsl_spline *NofZ, gsl_interp_accel *acc,
                                        std::vector<int> &map, int nside, pod3<double> r_min,
-                                       double z_min, double z_max);
+                                       double z_min, double z_max, double timeRan);
 };
 
 #endif
