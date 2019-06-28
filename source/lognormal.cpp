@@ -45,7 +45,7 @@ void lognormal::fillGridWithPower(gsl_spline *Pk, gsl_interp_accel *acc) {
                 if (k_mag > 0) {
                     double mu = kx[i]/k_mag;
                     double mono = (this->b + mu*mu*this->f)*(this->b + mu*mu*this->f);
-                    this->F_i[index.x] = mono*gsl_spline_eval(Pk, k_mag, acc);
+                    this->F_i[index.x] = mono*gsl_spline_eval(Pk, k_mag, acc)/V;
                     this->F_i[index.y] = 0.0;
                 } else {
                     this->F_i[index.x] = 0.0;
@@ -276,6 +276,7 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, g
                                            double z_min, double z_max) {
     std::vector<galaxy> gals;
     long count = 0L;
+    long count_zeros = 0L;
     double mean = 0.0, var = 0.0;
     for (int i = 0; i < this->N.x; ++i) {
         for (int j = 0; j < this->N.y; ++j) {
@@ -283,10 +284,16 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, g
                 size_t index = lognormal::getRealIndex(i, j, k);
                 
                 lognormal::updateStats(this->F[index], mean, var, count);
+                if (this->F[index] == 0) {
+                    count_zeros++;
+                }
             }
         }
     }
     var /= (count - 1L);
+    std::cout << "mean = " << mean << std::endl;
+    std::cout << "var = " << var << std::endl;
+    std::cout << "Number of zeros in density field: " << count_zeros << std::endl;
     
     for (int i = 0; i < this->N.x; ++i) {
         double r_x = (i + 0.5)*this->Delta_r.x + r_min.x;
@@ -353,8 +360,10 @@ std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, gsl_spline *NofZ, gs
                         cellsInMap++;
                         double n = gsl_spline_eval(NofZ, equa.z, acc);
                         n *= this->Delta_r.x*this->Delta_r.y*this->Delta_r.z*timesRan;
+                        std::poisson_distribution<int> p_dist(n);
+                        int num_ran = p_dist(this->gen);
                         
-                        for (int ran = 0; ran < n; ++ran) {
+                        for (int ran = 0; ran < num_ran; ++ran) {
                             double x = r_x + (this->U(this->gen) - 0.5)*this->Delta_r.x;
                             double y = r_y + (this->U(this->gen) - 0.5)*this->Delta_r.y;
                             double z = r_z + (this->U(this->gen) - 0.5)*this->Delta_r.z;
