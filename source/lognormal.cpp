@@ -73,7 +73,7 @@ void lognormal::getLog() {
 }
 
 void lognormal::getdk_ln(fftw_complex *dk) {
-    int N_tot = this->N.x*this->N.y*(this->N.z/2 + 1);
+    int N_tot = this->N.x*this->N.y*this->N.z;
 #pragma omp parallel for
     for (int i = 0; i < N_tot; ++i) {
         if (dk[i][0] > 0) {
@@ -290,7 +290,7 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, g
             }
         }
     }
-    var /= (count - 1L);
+    var /= (count - 1);
     std::cout << "mean = " << mean << std::endl;
     std::cout << "var = " << var << std::endl;
     std::cout << "Number of zeros in density field: " << count_zeros << std::endl;
