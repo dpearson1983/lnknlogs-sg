@@ -1,5 +1,5 @@
 # Toggle survey vs box mode
-bool survey = True
+bool surveyMode = True
 
 # Grid properties
 int Nx = 512
