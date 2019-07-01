@@ -13,7 +13,6 @@
 class lognormal : public grid3D{
     double b, f;
     std::vector<double> kx, ky, kz;
-    fftw_plan dk2dr;
     std::vector<double> F_i;
     std::mt19937_64 gen;
     std::normal_distribution<double> norm;
@@ -36,6 +35,7 @@ class lognormal : public grid3D{
     pod3<double> cartToEqua(double x, double y, double z, cosmology &cosmo);
     
     public:
+        fftw_plan dk2dr;
         
         lognormal(pod3<int> N, pod3<double> L, std::string pkFile, double b = 1.0, double f = 0.0);
         

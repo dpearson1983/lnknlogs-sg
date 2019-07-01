@@ -5,10 +5,9 @@ size_t grid3D::getIndex(int i, int j, int k) {
     return size_t(k + this->N.z*(j + this->N.y*i));
 }
 
-grid3D::grid3D(pod3<int> N, pod3<double> L) {
+grid3D::grid3D(pod3<int> N, pod3<double> L) : F(N.x*N.y*N.z) {
     this->N = N;
     this->L = L;
-    this->F.resize(N.x*N.y*N.z);
 }
 
 void grid3D::set(int i, int j, int k, double val) {

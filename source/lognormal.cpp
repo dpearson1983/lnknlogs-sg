@@ -68,7 +68,7 @@ std::vector<double> lognormal::fftFrequencies(int n, double l) {
 
 void lognormal::getLog() {
 #pragma omp parallel for
-    for (int i = 0; i < this->F_i.size(); ++i)
+    for (size_t i = 0; i < this->F_i.size(); ++i)
         this->F_i[i] = std::log(1.0 + F_i[i]);
 }
 
@@ -258,7 +258,6 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, double nbar, pod3<d
 }
 
 std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, double nbar, pod3<double> r_min, double timesRan) {
-    size_t N_ran = nbar*this->L.x*this->L.y*this->L.z*timesRan;
     std::vector<galaxy> rans;
     
     double density = nbar*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z*timesRan;
@@ -328,7 +327,7 @@ std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, gsl_spline *NofZ, g
                 double phi = equa.x*(M_PI/180.0);
                 long pix;
                 ang2pix_nest(nside, theta, phi, &pix);
-                if (pix < map.size()) {
+                if (pix < (long)map.size()) {
                     if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
                         double n = gsl_spline_eval(NofZ, equa.z, acc)*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
                         double density = n*exp(this->F[index] - var/2.0);
@@ -359,14 +358,12 @@ std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, gsl_spline *NofZ, gs
                                           double z_min, double z_max, double timesRan) {
     std::vector<galaxy> rans;
     long cellsInMap = 0;
-    int count = 0;
     for (int i = 0; i < this->N.x; ++i) {
         double r_x = (i + 0.5)*this->Delta_r.x + r_min.x;
         for (int j = 0; j < this->N.y; ++j) {
             double r_y = (j + 0.5)*this->Delta_r.y + r_min.y;
             for (int k = 0; k < this->N.z; ++k) {
                 double r_z = (k + 0.5)*this->Delta_r.z + r_min.z;
-                size_t index = lognormal::getRealIndex(i, j, k);
                 
                 pod3<double> equa = lognormal::cartToEqua(r_x, r_y, r_z, cosmo);
                 double theta = (90.0 - equa.y)*(M_PI/180.0);
@@ -374,7 +371,7 @@ std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, gsl_spline *NofZ, gs
                 long pix;
                 ang2pix_nest(nside, theta, phi, &pix);
 
-                if (pix < map.size()) {
+                if (pix < (long)map.size()) {
                     if (map[pix] == 1 and equa.z >= z_min and equa.z < z_max) {
                         cellsInMap++;
                         double n = gsl_spline_eval(NofZ, equa.z, acc);
