@@ -1,0 +1,42 @@
+# Toggle survey vs box mode
+bool survey = True
+
+# Grid properties
+int Nx = 512
+int Ny = 1024
+int Nz = 512
+
+double Lx = 1792.0
+double Ly = 3584.0
+double Lz = 1792.0
+
+double x_min = -1826.63942277274
+double y_min = -1833.07922613152
+double z_min = -134.111529165308
+
+double red_min = 0.43
+double red_max = 0.7
+
+double b = 2.1
+double f = 0
+
+# Cosmology
+double H_0 = 67.74
+double Omega_M = 0.3089
+double Omega_L = 0.6911
+
+# Healpix map
+int nside = 512
+string mapFile = patchyMap.dat
+
+# File info
+string outBase = LNKNLogs-DR12
+string outExt = dat
+int digits = 4
+int startNum = 1
+int numMocks = 1024
+string pkFile = InputPk.dat
+string NofZFile = nofz.dat
+bool generateRandoms = false
+double timesRan = 50.0
+string ransFile = LNKNLogs-DR12-Randoms-x50.dat

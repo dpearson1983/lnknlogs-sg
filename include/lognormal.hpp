@@ -13,7 +13,7 @@
 class lognormal : public grid3D{
     double b, f;
     std::vector<double> kx, ky, kz;
-    fftw_plan dr2dk, dk2dr;
+    fftw_plan dk2dr;
     std::vector<double> F_i;
     std::mt19937_64 gen;
     std::normal_distribution<double> norm;

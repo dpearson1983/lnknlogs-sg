@@ -124,8 +124,6 @@ grid3D::grid3D(N, L), gen((std::random_device())()), norm(0.0, 1.0), U(0.0, 1.0)
     fftw_init_threads();
     fftw_import_wisdom_from_filename("fftwWisdom.dat");
     fftw_plan_with_nthreads(omp_get_max_threads());
-    this->dr2dk = fftw_plan_dft_r2c_3d(N.x, N.y, N.z, this->F.data(), (fftw_complex *)this->F.data(),
-                                       FFTW_MEASURE);
     this->dk2dr = fftw_plan_dft_c2r_3d(N.x, N.y, N.z, (fftw_complex *)this->F.data(), this->F.data(),
                                        FFTW_MEASURE);
     fftw_export_wisdom_to_filename("fftwWisdom.dat");
@@ -134,7 +132,6 @@ grid3D::grid3D(N, L), gen((std::random_device())()), norm(0.0, 1.0), U(0.0, 1.0)
 }
 
 lognormal::~lognormal(){
-    fftw_destroy_plan(this->dr2dk);
     fftw_destroy_plan(this->dk2dr);
     fftw_cleanup_threads();
 }
