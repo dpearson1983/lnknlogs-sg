@@ -261,7 +261,7 @@ std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, double nbar, pod3<do
     size_t N_ran = nbar*this->L.x*this->L.y*this->L.z*timesRan;
     std::vector<galaxy> rans;
     
-    double density = nbar*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
+    double density = nbar*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z*timesRan;
     std::poisson_distribution<int> p_dist(density);
     
     for (int i = 0; i < this->N.x; ++i) {
