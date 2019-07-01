@@ -115,12 +115,16 @@ int main(int argc, char *argv[]) {
         std::cout << "Initialize file writer..." << std::endl;
         fileIO writer(p.gets("outBase"), p.gets("outExt"), p.geti("digits"), p.geti("startNum"));
         
+        std::cout << "Initialize cosmology..." << std::endl;
+        cosmology cosmo(p.getd("H_0"), p.getd("Omega_M"), p.getd("Omega_L"));
+        std::cout << "    Test redshift: " << cosmo.get_redshift_from_comoving_distance(1875.0) << std::endl;
+        
         std::cout << "Initialize lognormal object..." << std::endl;
         lognormal lnknlog(N, L, p.gets("pkFile"), p.getd("b"), p.getd("f"));
         
         if (p.getb("generateRandoms")) {
             std::cout << "Generating randoms..." << std::endl;
-            std::vector<galaxy> rans = lnknlog.getRandoms(p.getd("nbar"), r_min, p.getd("timesRan"));
+            std::vector<galaxy> rans = lnknlog.getRandoms(cosmo, p.getd("nbar"), r_min, p.getd("timesRan"));
             std::cout << "    Total number of randoms: " << rans.size() << std::endl;
             writer.write(rans, p.gets("ransFile"));
         }
@@ -130,7 +134,7 @@ int main(int argc, char *argv[]) {
             std::cout << "    Mock #" << mock << "..." << std::endl;
             lnknlog.sample();
             
-            std::vector<galaxy> gals = lnknlog.getGalaxies(p.getd("nbar"), r_min);
+            std::vector<galaxy> gals = lnknlog.getGalaxies(cosmo, p.getd("nbar"), r_min);
             std::cout << "        Number of galaxies: " << gals.size() << std::endl;
             writer.write(gals);
         }

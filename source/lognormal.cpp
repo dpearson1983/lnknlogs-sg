@@ -209,7 +209,7 @@ void lognormal::sample() {
     fftw_execute(dk2dr);
 }
 
-std::vector<galaxy> lognormal::getGalaxies(double nbar, pod3<double> r_min) {
+std::vector<galaxy> lognormal::getGalaxies(cosmology &cosmo, double nbar, pod3<double> r_min) {
     std::vector<galaxy> gals;
     double n = nbar*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
     long count = 0L;
@@ -244,6 +244,10 @@ std::vector<galaxy> lognormal::getGalaxies(double nbar, pod3<double> r_min) {
                                  r_y + this->U(this->gen)*this->Delta_r.y,
                                  r_z + this->U(this->gen)*this->Delta_r.z,
                                  nbar, 1.0, this->b);
+                    pod3<double> equa = lognormal::cartToEqua(gal_i.x, gal_i.y, gal_i.z, cosmo);
+                    gal_i.ra = equa.x;
+                    gal_i.dec = equa.y;
+                    gal_i.red = equa.z;
                     gals.push_back(gal_i);
                 }
             }
@@ -253,16 +257,34 @@ std::vector<galaxy> lognormal::getGalaxies(double nbar, pod3<double> r_min) {
     return gals;
 }
 
-std::vector<galaxy> lognormal::getRandoms(double nbar, pod3<double> r_min, double timesRan) {
+std::vector<galaxy> lognormal::getRandoms(cosmology &cosmo, double nbar, pod3<double> r_min, double timesRan) {
     size_t N_ran = nbar*this->L.x*this->L.y*this->L.z*timesRan;
     std::vector<galaxy> rans;
     
-    for (size_t i = 0; i < N_ran; ++i) {
-        double x = this->U(this->gen)*this->L.x + r_min.x;
-        double y = this->U(this->gen)*this->L.y + r_min.y;
-        double z = this->U(this->gen)*this->L.z + r_min.z;
-        galaxy ran(x, y, z, nbar, 1.0, this->b);
-        rans.push_back(ran);
+    double density = nbar*this->Delta_r.x*this->Delta_r.y*this->Delta_r.z;
+    std::poisson_distribution<int> p_dist(density);
+    
+    for (int i = 0; i < this->N.x; ++i) {
+        double r_x = i*this->Delta_r.x + r_min.x;
+        for (int j = 0; j < this->N.y; ++j) {
+            double r_y = j*this->Delta_r.y + r_min.y;
+            for (int k = 0; k < this->N.z; ++k) {
+                double r_z = k*this->Delta_r.z + r_min.z;
+                int num_rans = p_dist(this->gen);
+                
+                for (int ran = 0; ran < num_rans; ++ran) {
+                    double x = this->U(this->gen)*this->Delta_r.x + r_x;
+                    double y = this->U(this->gen)*this->Delta_r.y + r_y;
+                    double z = this->U(this->gen)*this->Delta_r.z + r_z;
+                    galaxy ran_i(x, y, z, nbar, 1.0, this->b);
+                    pod3<double> equa = lognormal::cartToEqua(ran_i.x, ran_i.y, ran_i.z, cosmo);
+                    ran_i.ra = equa.x;
+                    ran_i.dec = equa.y;
+                    ran_i.red = equa.z;
+                    rans.push_back(ran_i);
+                }
+            }
+        }
     }
     
     return rans;

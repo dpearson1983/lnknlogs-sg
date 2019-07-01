@@ -45,9 +45,9 @@ class lognormal : public grid3D{
         
         void sample();
         
-        std::vector<galaxy> getGalaxies(double nbar, pod3<double> r_min);
+        std::vector<galaxy> getGalaxies(cosmology &cosmo, double nbar, pod3<double> r_min);
         
-        std::vector<galaxy> getRandoms(double nbar, pod3<double> r_min, double timesRan);
+        std::vector<galaxy> getRandoms(cosmology &cosmo, double nbar, pod3<double> r_min, double timesRan);
         
         std::vector<galaxy> getGalaxies(cosmology &cosmo, gsl_spline *NofZ, gsl_interp_accel *acc,
                                         std::vector<int> &map, int nside, pod3<double> r_min,
