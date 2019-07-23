@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "../include/harppi.h"
+#include "../include/harppi.hpp"
 
 parameters::parameters(char *file) {
     parameters::readParams(file);

@@ -13,6 +13,7 @@ lnknlogs_sg: $(OBJ_FILES)
 	cp $@ $(HOME)/bin/$@
 	
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	mkdir -p obj
 	$(CXX) $(OMP) $(CXXOPTS) -c $< -o $@
 
 clean:
